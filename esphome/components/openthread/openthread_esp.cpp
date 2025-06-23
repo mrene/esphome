@@ -138,6 +138,26 @@ void OpenThreadComponent::ot_main() {
   }
 #endif
 
+#ifdef CONFIG_OPENTHREAD_MTD
+  otLinkModeConfig linkMode = {};
+
+  linkMode.mRxOnWhenIdle = CONFIG_OPENTHREAD_NETWORK_POLLPERIOD_TIME == 0;
+  linkMode.mDeviceType = false;   // MTD
+  linkMode.mNetworkData = false;  // We do not require the full network data
+
+#if defined(CONFIG_OPENTHREAD_NETWORK_POLLPERIOD_TIME) && CONFIG_OPENTHREAD_NETWORK_POLLPERIOD_TIME > 0
+  if (otLinkSetPollPeriod(esp_openthread_get_instance(), CONFIG_OPENTHREAD_NETWORK_POLLPERIOD_TIME) != OT_ERROR_NONE) {
+    ESP_LOGE(TAG, "Failed to set OpenThread pollperiod.");
+    abort();
+  }
+#endif
+
+  if (otThreadSetLinkMode(esp_openthread_get_instance(), linkMode) != OT_ERROR_NONE) {
+    ESP_LOGE(TAG, "Failed to set OpenThread linkmode.");
+    abort();
+  }
+#endif
+
   // Pass the existing dataset, or NULL which will use the preprocessor definitions
   ESP_ERROR_CHECK(esp_openthread_auto_start(dataset.mLength > 0 ? &dataset : nullptr));
 

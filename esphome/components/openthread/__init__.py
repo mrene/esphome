@@ -11,6 +11,7 @@ from esphome.const import CONF_CHANNEL, CONF_ENABLE_IPV6, CONF_ID
 import esphome.final_validate as fv
 
 from .const import (
+    CONF_DEVICE_TYPE,
     CONF_EXT_PAN_ID,
     CONF_FORCE_DATASET,
     CONF_MDNS_ID,
@@ -18,6 +19,7 @@ from .const import (
     CONF_NETWORK_KEY,
     CONF_NETWORK_NAME,
     CONF_PAN_ID,
+    CONF_POLL_PERIOD,
     CONF_PSKC,
     CONF_SRP_ID,
     CONF_TLV,
@@ -79,8 +81,23 @@ def set_sdkconfig_options(config):
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT", True)
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT_MAX_SERVICES", 5)
 
-    # TODO: Add suport for sleepy end devices
-    add_idf_sdkconfig_option("CONFIG_OPENTHREAD_FTD", True)  # Full Thread Device
+    if CONF_DEVICE_TYPE in config:
+        device_type = config[CONF_DEVICE_TYPE]
+        if device_type == "full":
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_FTD", True
+            )  # Full Thread Device
+        elif device_type == "minimal":
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_MTD", True
+            )  # Minimal Thread Device
+            if CONF_POLL_PERIOD in config:
+                cg.add_define(
+                    "CONFIG_OPENTHREAD_NETWORK_POLLPERIOD_TIME",
+                    config[CONF_POLL_PERIOD],
+                )
+        else:
+            raise ValueError(f"Invalid device type: {device_type}")
 
 
 openthread_ns = cg.esphome_ns.namespace("openthread")
@@ -96,6 +113,8 @@ _CONNECTION_SCHEMA = cv.Schema(
         cv.Optional(CONF_NETWORK_NAME): cv.string_strict,
         cv.Optional(CONF_PSKC): cv.hex_int,
         cv.Optional(CONF_MESH_LOCAL_PREFIX): cv.ipv6network,
+        cv.Optional(CONF_DEVICE_TYPE): cv.string_strict,
+        cv.Optional(CONF_POLL_PERIOD): cv.int_,
     }
 )
 
